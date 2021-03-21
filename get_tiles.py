@@ -80,16 +80,18 @@ def paint(args):
     
     img = Image.new('RGBA', tuple(size * int(styles[0].tile_size)))
     draw = ImageDraw.Draw(img)
+
+    S = styles[0].tile_size
     
     for style in styles:
         style.user_agent = args.user_agent
-        # TODO: resample for different sizes?
-        assert style.tile_size == styles[0].tile_size
         
         tiles = style.get_tiles(bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
         for c, path in tiles.items():
             tile = Image.open(path).convert('RGBA')
-            x, y = style.tile_size * (c - bounds[0])
+            if style.tile_size != S:
+                tile = tile.resize((S, S))
+            x, y = S * (c - bounds[0])
             img.alpha_composite(tile, (x, y))
     
     if args.debug:
