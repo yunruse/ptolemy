@@ -103,12 +103,18 @@ def paint(args):
                 tile = tile.resize((S, S))
             x, y = S * (c - bounds[0])
             img.alpha_composite(tile, (x, y))
-    
+
     if args.debug:
-        draw.rectangle(
-            (x, y, x+tile_size, y+tile_size),
-            fill=None, outline='red', width=1)
-        draw.text((x+4, y), "{}, {}".format(*m), fill='red')
+        for c in tiles.keys():
+            x, y = S * (c - bounds[0])
+            text = "{}, {}".format(*c)
+            draw.rectangle(
+                (x, y, x+6*len(text)+1, y+10),
+                fill='white')
+            draw.rectangle(
+                (x, y, x+style.tile_size, y+style.tile_size),
+                fill=None, outline='red', width=1)
+            draw.text((x+2, y), text, fill='red')
     img.save(args.out)
 
 epilog = 'Layer styles availale in styles.txt are:\n'
