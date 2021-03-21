@@ -10,50 +10,58 @@ from itertools import product
 import urllib.request
 
 import numpy as np
+from PIL import Image, ImageDraw
+
+class Tilemap:
+    def __init__(self, kind, url, size):
+        self.kind = kind
+        self.url = url
+        self.tile_size = int(size)
+        self.user_agent = None
+
+    def grab_file(self, to_fmt, redownload=False, **fmt):
+        out = to_fmt.format(**fmt)
+        if redownload or not os.path.isfile(out):
+            folder, _ = os.path.split(out)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+                
+            headers = {}
+            if self.user_agent:
+                headers['User-Agent'] = self.user_agent
+            request = urllib.request.Request(
+                self.url.format(**fmt), headers=headers
+            )
+            with urllib.request.urlopen(request) as fin:
+                with open(out, 'wb') as fout:
+                    fout.write(fin.read())
+        return out
+
+    def get_tiles(self, bounds, zoom, callback=lambda x: None):
+        (x0, y0), (x1, y1) = bounds
+        coords = product(range(x0, x1), range(y0, y1))
+        tiles = {}
+        for i, c in enumerate(coords):
+            tiles[c] = self.grab_file(
+                STORAGE,
+                x=c[0], y=c[1], z=zoom, kind=self.kind)
+            callback(i)
+        return tiles 
 
 with open('styles.txt') as f:
     STYLES = {
-        kind: (url, size)
+        kind: Tilemap(kind, url, size)
         for (kind, url, size)
         in csv.reader(f)
     }
 
 STORAGE = "tiles/{kind}/{z}/{x}/{y}.jpg"
 
-def grab_file(from_fmt, to_fmt, redownload=False, user_agent=None, **fmt):
-    '''
-    Download a file with formatted strings.
-    Returns output path.
-    '''
-    out = to_fmt.format(**fmt)
-    folder, _ = os.path.split(out)
-    if redownload or not os.path.isfile(out):
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        headers = {}
-        if user_agent:
-            headers['User-Agent'] = user_agent
-        with urllib.request.urlopen(urllib.request.Request(
-            from_fmt.format(**fmt), headers=headers
-        )) as fin:
-            with open(out, 'wb') as fout:
-                fout.write(fin.read())
-    return out
-
-def get_tiles(url, bounds, zoom, kind, callback=lambda x: None):
-    (x0, y0), (x1, y1) = bounds
-    coords = product(range(x0, x1), range(y0, y1))
-    tiles = {}
-    for i, c in enumerate(coords):
-        tiles[c] = grab_file(url, STORAGE, x=c[0], y=c[1], z=zoom, kind=kind)
-        callback(i)
-    return tiles
-
 def paint(args):
     '''
     Stitch tiles given zoom and bounds. 
     '''
-    master_tile_size = STYLES[args.styles[0]][1]
+    styles = [STYLES[s] for s in args.styles]
     
     bounds = np.array([[args.x0, args.y0], [args.x1, args.y1]], dtype=int)
     if args.scale < 0:
@@ -69,24 +77,20 @@ def paint(args):
     print(f'zoom:     {zoom}')
     print(f'top left: {bounds[0]}')
     print(f'size:     {size}')
-
-    from PIL import Image, ImageDraw
-    img = Image.new('RGB', tuple(size * int(master_tile_size)))
+    
+    img = Image.new('RGBA', tuple(size * int(styles[0].tile_size)))
     draw = ImageDraw.Draw(img)
     
-    for style in args.styles:
-        url, tile_size = STYLES[style]
+    for style in styles:
+        style.user_agent = args.user_agent
         # TODO: resample for different sizes?
-        assert tile_size == master_tile_size
+        assert style.tile_size == styles[0].tile_size
         
-        tiles = get_tiles(
-            url, bounds, zoom, style,
-            lambda i: print(f'{i/N*100:>6.2f}%')
-        )
+        tiles = style.get_tiles(bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
         for c, path in tiles.items():
             tile = Image.open(path)
-            x, y = tile_size * (c - bounds[0])
-            img.paste(tile, (x, y))
+            x, y = style.tile_size * (c - bounds[0])
+            img.alpha_composite(tile, (x, y))
     
     if args.debug:
         draw.rectangle(
@@ -111,6 +115,8 @@ parser.add_argument('--debug', '-d', action='store_true',
                     help='draw helpful coordinate indicators')
 parser.add_argument('--scale', '-s', metavar='dz', type=int, default=0,
                     help='zoom factor to scale by')
+parser.add_argument('--user-agent', '-u', type=str, default=None,
+                    help='HTTP user agent')
 parser.add_argument('--out', '-o', type=str, default='out.png')
 
 if __name__ == '__main__':
