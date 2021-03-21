@@ -66,7 +66,10 @@ def paint(args):
     '''
     Stitch tiles given zoom and bounds. 
     '''
-    styles = [STYLES[s] for s in args.styles]
+    styles = []
+    for s in args.styles:
+        # TODO: custom zoom for each style?
+        styles.append(STYLES[s])
     
     bounds = np.array([[args.x0, args.y0], [args.x1, args.y1]], dtype=int)
     if args.scale < 0:
