@@ -4,26 +4,20 @@ Tile downloader.
 '''
 
 import argparse
+import csv
 import os
 from itertools import product
 import urllib.request
 
 import numpy as np
 
-STAMEN_1X = "http://tile.stamen.com/{kind}/{z}/{x}/{y}.jpg"
-STAMEN_2X = STAMEN_1X.replace('.jpg', '@2x.png')
-OSM = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png '
-
-STYLES = {
-    # kind: (url, tile_size)
-    'watercolor': (STAMEN_1X, 256),
-    'toner': (STAMEN_2X, 512),
-    'toner-background': (STAMEN_2X, 512),
-    'toner-labels': (STAMEN_2X, 512),
-    'terrain': (STAMEN_2X, 512),
-    'osm': (OSM, 256)
-}
-# TODO: toner merges background w/ labels
+with open('styles.txt') as f:
+    STYLES = {
+        kind: (url, size)
+        for (kind, url, size)
+        in csv.reader(f)
+    }
+# TODO: allow overlaying eg toner-labels on toner-background
 # (to save on network costs)
 
 STORAGE = "tiles/{kind}/{z}/{x}/{y}.jpg"

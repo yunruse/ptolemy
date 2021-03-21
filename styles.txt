@@ -1,0 +1,6 @@
+watercolor,http://tile.stamen.com/{kind}/{z}/{x}/{y}.jpg,256
+toner,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+toner-background,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+toner-labels,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+terrain,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+osm,https://a.tile.openstreetmap.org/{z}/{x}/{y}.png,256
