@@ -18,6 +18,7 @@ class Tilemap:
         self.url = url
         self.tile_size = int(size)
         self.user_agent = None
+        # TODO: API keys?
 
     def grab_file(self, to_fmt, redownload=False, **fmt):
         out = to_fmt.format(**fmt)
@@ -25,16 +26,20 @@ class Tilemap:
             folder, _ = os.path.split(out)
             if not os.path.exists(folder):
                 os.makedirs(folder)
-                
+
+            url = self.url.format(**fmt)
             headers = {}
             if self.user_agent:
                 headers['User-Agent'] = self.user_agent
-            request = urllib.request.Request(
-                self.url.format(**fmt), headers=headers
-            )
-            with urllib.request.urlopen(request) as fin:
-                with open(out, 'wb') as fout:
-                    fout.write(fin.read())
+            try:
+                request = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(request) as fin:
+                    with open(out, 'wb') as fout:
+                        fout.write(fin.read())
+            except urllib.error.HTTPError as e:
+                print(url)
+                print(e)
+                return 'empty'
         return out
 
     def get_tiles(self, bounds, zoom, callback=lambda x: None):
@@ -72,22 +77,27 @@ def paint(args):
     N = size[0] * size[1]
 
     zoom = args.zoom + args.scale
+    S = styles[0].tile_size
 
     print(f'drawing {N} tiles')
     print(f'zoom:     {zoom}')
     print(f'top left: {bounds[0]}')
     print(f'size:     {size}')
     
-    img = Image.new('RGBA', tuple(size * int(styles[0].tile_size)))
+    img = Image.new('RGBA', tuple(size * S))
     draw = ImageDraw.Draw(img)
 
-    S = styles[0].tile_size
     
     for style in styles:
+        print(f'fetching {style.kind}')
         style.user_agent = args.user_agent
         
-        tiles = style.get_tiles(bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
+        tiles = style.get_tiles(
+            bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
         for c, path in tiles.items():
+            if path == 'empty':
+                # TODO: fill with default sea color
+                continue
             tile = Image.open(path).convert('RGBA')
             if style.tile_size != S:
                 tile = tile.resize((S, S))
