@@ -17,8 +17,6 @@ with open('styles.txt') as f:
         for (kind, url, size)
         in csv.reader(f)
     }
-# TODO: allow overlaying eg toner-labels on toner-background
-# (to save on network costs)
 
 STORAGE = "tiles/{kind}/{z}/{x}/{y}.jpg"
 
@@ -42,7 +40,7 @@ def grab_file(from_fmt, to_fmt, redownload=False, user_agent=None, **fmt):
                 fout.write(fin.read())
     return out
 
-def get_tiles(url, bounds, zoom, kind, callback=lambda x: None, ):
+def get_tiles(url, bounds, zoom, kind, callback=lambda x: None):
     (x0, y0), (x1, y1) = bounds
     coords = product(range(x0, x1), range(y0, y1))
     tiles = {}
@@ -51,58 +49,68 @@ def get_tiles(url, bounds, zoom, kind, callback=lambda x: None, ):
         callback(i)
     return tiles
 
-def paint(kind, zoom, bounds, out, debug_marks=False, zoomfactor=0):
+def paint(args):
     '''
     Stitch tiles given zoom and bounds. 
     '''
-    bounds = np.array(bounds)
-    bounds.resize((2, 2))
-    (url, tile_size) = STYLES[kind]
-    if zoomfactor < 0:
-        bounds //= int(2 ** -zoomfactor)
+    master_tile_size = STYLES[args.styles[0]][1]
+    
+    bounds = np.array([[args.x0, args.y0], [args.x1, args.y1]], dtype=int)
+    if args.scale < 0:
+        bounds //= int(2 ** -args.scale)
     else:
-        bounds *= int(2 ** zoomfactor)
-    zoom += zoomfactor
+        bounds *= int(2 ** args.scale)
     size = (bounds[1]-bounds[0])
+    N = size[0] * size[1]
 
+    zoom = args.zoom + args.scale
+
+    print(f'drawing {N} tiles')
     print(f'zoom:     {zoom}')
     print(f'top left: {bounds[0]}')
     print(f'size:     {size}')
 
     from PIL import Image, ImageDraw
-
-    img = Image.new('RGB', tuple(tile_size * size))
+    img = Image.new('RGB', tuple(size * int(master_tile_size)))
     draw = ImageDraw.Draw(img)
-
-    N = size[0] * size[1]
-    tiles = get_tiles(
-        url, bounds, zoom, kind,
-        lambda i: print(f'{i/N*100:>6.2f}%')
-    )
+    
+    for style in args.styles:
+        url, tile_size = STYLES[style]
+        # TODO: resample for different sizes?
+        assert tile_size == master_tile_size
         
-    for c, path in tiles.items():
-        tile = Image.open(path)
-        x, y = tile_size * (c - bounds[0])
-        img.paste(tile, (x, y))
-        if debug_marks:
-            draw.rectangle(
-                (x, y, x+tile_size, y+tile_size),
-                fill=None, outline='red', width=1)
-            draw.text((x+4, y), "{}, {}".format(*m), fill='red')
-    img.save(out)
+        tiles = get_tiles(
+            url, bounds, zoom, style,
+            lambda i: print(f'{i/N*100:>6.2f}%')
+        )
+        for c, path in tiles.items():
+            tile = Image.open(path)
+            x, y = tile_size * (c - bounds[0])
+            img.paste(tile, (x, y))
+    
+    if args.debug:
+        draw.rectangle(
+            (x, y, x+tile_size, y+tile_size),
+            fill=None, outline='red', width=1)
+        draw.text((x+4, y), "{}, {}".format(*m), fill='red')
+    img.save(args.out)
 
-parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('mode', type=str)
-parser.add_argument('zoom', type=int)
-parser.add_argument('x0', type=int)
-parser.add_argument('y0', type=int)
-parser.add_argument('x1', type=int)
-parser.add_argument('y1', type=int)
+epilog = 'Layer styles availale in styles.txt are:\n'
+epilog += ', '.join(STYLES.keys())
+parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
+
+parser.add_argument('zoom', type=int, help='zoom factor (doubles per unit)')
+parser.add_argument('x0', type=int, help='x of top-left tile')
+parser.add_argument('y0', type=int, help='y of top-left tile')
+parser.add_argument('x1', type=int, help='x of bottom-right tile')
+parser.add_argument('y1', type=int, help='y of bottom-right tile')
+parser.add_argument('styles', type=str, nargs='+', help='map tile source')
 parser.add_argument('--relative', '-r', action='store_true',
                     help='provide (w, h) instead of (x1, y1)')
 parser.add_argument('--debug', '-d', action='store_true',
                     help='draw helpful coordinate indicators')
-parser.add_argument('--zoomfactor', '-z', type=int, default=0)
+parser.add_argument('--scale', '-s', metavar='dz', type=int, default=0,
+                    help='zoom factor to scale by')
 parser.add_argument('--out', '-o', type=str, default='out.png')
 
 if __name__ == '__main__':
@@ -110,5 +118,4 @@ if __name__ == '__main__':
     if args.relative:
         args.x1 += args.x0
         args.y1 += args.y0
-    paint(args.mode, args.zoom, [args.x0, args.y0, args.x1, args.y1],
-          out=args.out, zoomfactor=args.zoomfactor, debug_marks=args.debug)
+    paint(args)
