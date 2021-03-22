@@ -138,11 +138,17 @@ parser.add_argument('--scale', '-s', metavar='dz', type=int, default=0,
                     help='zoom factor to scale by')
 parser.add_argument('--user-agent', '-u', type=str, default=None,
                     help='HTTP user agent')
-parser.add_argument('--out', '-o', type=str, default='out.png')
+parser.add_argument('--out', '-o', type=str, default=None)
 
 if __name__ == '__main__':
     args = parser.parse_args()
     if args.relative:
         args.x1 += args.x0
         args.y1 += args.y0
+    if args.out is None:
+        from sys import argv
+        args.out = ' '.join(argv[1:]) + '.png'
+        args.out = args.out.replace('/', '_')
+    if args.user_agent is not None:
+        args.user_agent = args.user_agent.replace('_', '/')
     paint(args)
