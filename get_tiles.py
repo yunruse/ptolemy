@@ -1,6 +1,8 @@
 '''
-Tile downloader.
+Ptolemy: a mapping tile fetch-and-stitch tool.
 
+Tiles are fetches to the tiles/ folder for caching/use,
+and the output is stitched together with optional debugging symbols.
 '''
 
 import argparse
@@ -120,7 +122,7 @@ def paint(args):
             draw.text((x+2, y), text, fill='red')
     img.save(args.out)
 
-epilog = 'Layer styles availale in styles.txt are:\n'
+epilog = 'Layer styles available in styles.txt are:\n'
 epilog += ', '.join(STYLES.keys())
 parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
 
