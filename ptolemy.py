@@ -10,9 +10,12 @@ import csv
 import os
 from itertools import product
 import urllib.request
+import sys
 
 import numpy as np
 from PIL import Image, ImageDraw
+
+from projections import PROJECTIONS, project
 
 class Tilemap:
     def __init__(self, kind, url, size):
@@ -53,7 +56,7 @@ class Tilemap:
                 STORAGE,
                 x=c[0], y=c[1], z=zoom, kind=self.kind)
             callback(i)
-        return tiles 
+        return tiles
 
 with open('styles.txt') as f:
     STYLES = {
@@ -109,7 +112,7 @@ def paint(args):
             x, y = S * (c - bounds[0])
             img.alpha_composite(tile, (x, y))
 
-    if args.debug:
+    if args.indicators:
         for c in tiles.keys():
             x, y = S * (c - bounds[0])
             text = "{}, {}".format(*c)
@@ -120,37 +123,78 @@ def paint(args):
                 (x, y, x+style.tile_size, y+style.tile_size),
                 fill=None, outline='red', width=1)
             draw.text((x+2, y), text, fill='red')
+
+    if f := PROJECTIONS.get(args.project):
+        print(f'Projecting to {args.project}...')
+        img = project(img, f)
     img.save(args.out)
 
-epilog = 'Layer styles available in styles.txt are:\n'
-epilog += ', '.join(STYLES.keys())
+epilog = '''\
+Coordinates are from 0 to 2 ^ zoom.
+If you want to keep the same coordinates but increase the tile resolution,
+increas scale; if you increase zoom by 1 you must also double the coordinates
+(and so on.)
+x and y must be provided. (x1,y1) and (width, height) must be provided together.
+If multiple options for size are provided, precedence is established in the order
+(x1, y1) > (width, height) > radius.
+'''
 parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
 
-parser.add_argument('zoom', type=int, help='zoom factor (doubles per unit)')
-parser.add_argument('x0', type=int, help='x of top-left tile')
-parser.add_argument('y0', type=int, help='y of top-left tile')
-parser.add_argument('x1', type=int, help='x of bottom-right tile')
-parser.add_argument('y1', type=int, help='y of bottom-right tile')
-parser.add_argument('styles', type=str, nargs='+', help='map tile source')
-parser.add_argument('--relative', '-r', action='store_true',
-                    help='provide (w, h) instead of (x1, y1)')
-parser.add_argument('--debug', '-d', action='store_true',
-                    help='draw helpful coordinate indicators')
+OPTINT = dict(type=int, default=None)
+parser.add_argument('--zoom', '-z', type=int, default=0, help='zoom factor (doubles per unit)')
+parser.add_argument('-x', **OPTINT, help='x of top-left tile')
+parser.add_argument('-y', **OPTINT, help='y of top-left tile')
+parser.add_argument('--x1', **OPTINT, help='x of bottom-right tile')
+parser.add_argument('--y1', **OPTINT, help='y of bottom-right tile')
+parser.add_argument('--width', '-W', **OPTINT, help='width of image')
+parser.add_argument('--height', '-H', **OPTINT, help='y of bottom-right tile')
+parser.add_argument('--radius', '-r', **OPTINT,
+                    help='Treat (x,y) as the centre of a square and use RADIUS'
+                    ' as its width.')
+parser.add_argument('styles', type=str, nargs='+', choices=STYLES.keys(),
+                    help='Map tile source to use, as defined in styles.txt.',)
+parser.add_argument('--indicators', '-i', action='store_true',
+                    help='Draw helpful coordinate indicators.'
+                    'Useful for finding exactly what size you want.')
 parser.add_argument('--scale', '-s', metavar='dz', type=int, default=0,
-                    help='zoom factor to scale by')
+                    help='Zoom factor to scale in by. ')
 parser.add_argument('--user-agent', '-u', type=str, default=None,
-                    help='HTTP user agent')
-parser.add_argument('--out', '-o', type=str, default=None)
+                    help='HTTP user agent. Provide `_` in place of `/`.')
+parser.add_argument('--out', '-o', default=None,
+                    help='File to output result to.'
+                    ' Defaults to the arguments provided in the current folder,'
+                    ' for easy comparison of different options.')
+parser.add_argument('--project', '-p', choices=PROJECTIONS.keys(),
+                    help='Project to a certain map projection.')
+
+def exit(code, message):
+    print(message, sys.stdout)
+    exit(code)
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    if args.relative:
-        args.x1 += args.x0
-        args.y1 += args.y0
+    # x,y parsing
+    if not (args.x and args.y):
+        args.x0 = args.y0 = 0
+        args.x1 = args.y1 = 1
+        
+    elif args.x1 or args.y1:
+        if not (args.x1 and args.y1):
+            exit(2, "--x1 and --y1 must both be present")
+    elif args.width or args.height:
+        if not (args.width and args.height):
+            exit(2, "--width and --height must both be present")
+        args.x1 = args.x + args.width
+        args.y1 = args.y + args.width
+    elif args.radius:
+        args.x0 = args.x - args.radius
+        args.y0 = args.y - args.radius
+        args.x1 = args.x + args.radius
+        args.y1 = args.y + args.radius
+    
     if args.out is None:
         from sys import argv
-        args.out = ' '.join(argv[1:]) + '.png'
-        args.out = args.out.replace('/', '_')
+        args.out = ' '.join(argv[1:]).replace('/', '_') + '.png'
     if args.user_agent is not None:
         args.user_agent = args.user_agent.replace('_', '/')
     paint(args)
