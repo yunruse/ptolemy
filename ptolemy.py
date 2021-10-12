@@ -165,7 +165,7 @@ parser.add_argument('--out', '-o', default=None,
                     ' Defaults to the arguments provided in the current folder,'
                     ' for easy comparison of different options.')
 parser.add_argument('--project', '-p', choices=PROJECTIONS.keys(),
-                    help='Project to a certain map projection.')
+                    help='Project to a certain map projection. Works only if viewing whole Earth.')
 
 def exit(code, message):
     print(message, sys.stdout)
@@ -174,6 +174,8 @@ def exit(code, message):
 if __name__ == '__main__':
     args = parser.parse_args()
     # x,y parsing
+    args.x0 = args.x
+    args.y0 = args.y
     if not (args.x and args.y):
         args.x0 = args.y0 = 0
         args.x1 = args.y1 = 1
