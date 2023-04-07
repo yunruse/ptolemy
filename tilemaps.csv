@@ -1,8 +1,9 @@
-watercolor,Stamen Watercolor,http://tile.stamen.com/{kind}/{z}/{x}/{y}.jpg,256
-toner,Stamen Toner,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
-toner-background,Stamen Toner (background),http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
-toner-labels,Stamen Toner (labels),http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
-terrain,Stamen Terrain,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+key,name,url,size
+watercolor,Stamen 'Open Terrain' Watercolor,http://tile.stamen.com/{kind}/{z}/{x}/{y}.jpg,256
+toner,Stamen 'Open Terrain' Toner,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+toner-background,Stamen 'Open Terrain' Toner (background),http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+toner-labels,Stamen 'Open Terrain' Toner (labels),http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
+terrain,Stamen 'Open Terrain' Terrain,http://tile.stamen.com/{kind}/{z}/{x}/{y}@2x.png,512
 openstreetmap,OpenStreetMap,https://c.tile.openstreetmap.org/{z}/{x}/{y}.png,256
 opencyclemap,OpenCycleMap,http://tile.thunderforest.com/cycle/{z}/{x}/{y}.png,256
 cawn,Consortium of Ancient World Mappers,http://cawm.lib.uiowa.edu/tiles/{z}/{x}/{y}.png,256
