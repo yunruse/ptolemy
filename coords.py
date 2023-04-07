@@ -7,7 +7,7 @@ def ints(string: str):
 OPTINT = dict(type=int, default=None)
 OPTINT2 = dict(type=ints, default=None)
 
-def add_coordinate_options(parser: argparse.Parser):
+def add_coordinate_options(parser: argparse.ArgumentParser):
     coords = parser.add_argument_group('coordinates', description='''\
     Coordinates are from 0 to 2 ^ zoom.
     If you want to keep the same coordinates but increase the tile resolution,
