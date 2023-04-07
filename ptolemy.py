@@ -11,17 +11,26 @@ import os
 from itertools import product
 import urllib.request
 import sys
+from dataclasses import dataclass
 
 import numpy as np
 from PIL import Image, ImageDraw
 
-from projections import PROJECTIONS, project
+try:
+    from projections import PROJECTIONS, project
+except:
+    PROJECTIONS = {}
+    project = None
 
+
+@dataclass
 class Tilemap:
-    def __init__(self, kind, url, size):
-        self.kind = kind
-        self.url = url
-        self.tile_size = int(size)
+    kind: str
+    name: str
+    url: str
+    tile_size: int
+
+    def __post_init__(self):
         self.user_agent = None
         # TODO: API keys?
 
@@ -58,14 +67,16 @@ class Tilemap:
             callback(i)
         return tiles
 
-with open('styles.txt') as f:
-    STYLES = {
-        kind: Tilemap(kind, url, size)
-        for (kind, url, size)
-        in csv.reader(f)
-    }
+
+with open('tilemaps.csv') as f:
+    STYLES: dict[str, Tilemap] = {}
+    for line in csv.reader(f):
+        assert len(line) == 4, "is there a missed comma in tilemaps.csv?"
+        kind, name, url, size = line
+        STYLES[kind] = Tilemap(kind, name, url, int(size))
 
 STORAGE = "tiles/{kind}/{z}/{x}/{y}.jpg"
+
 
 def paint(args):
     '''
@@ -75,7 +86,7 @@ def paint(args):
     for s in args.styles:
         # TODO: custom zoom for each style?
         styles.append(STYLES[s])
-    
+
     bounds = np.array([[args.x0, args.y0], [args.x1, args.y1]], dtype=int)
     if args.scale < 0:
         bounds //= int(2 ** -args.scale)
@@ -91,15 +102,14 @@ def paint(args):
     print(f'zoom:     {zoom}')
     print(f'top left: {bounds[0]}')
     print(f'size:     {size}')
-    
+
     img = Image.new('RGBA', tuple(size * S))
     draw = ImageDraw.Draw(img)
 
-    
     for style in styles:
         print(f'fetching {style.kind}')
         style.user_agent = args.user_agent
-        
+
         tiles = style.get_tiles(
             bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
         for c, path in tiles.items():
@@ -124,10 +134,12 @@ def paint(args):
                 fill=None, outline='red', width=1)
             draw.text((x+2, y), text, fill='red')
 
+    # TODO: raise error if projecting and not on Z=0 (?)
     if f := PROJECTIONS.get(args.project):
         print(f'Projecting to {args.project}...')
         img = project(img, f)
     img.save(args.out)
+
 
 epilog = '''\
 Coordinates are from 0 to 2 ^ zoom.
@@ -141,7 +153,8 @@ If multiple options for size are provided, precedence is established in the orde
 parser = argparse.ArgumentParser(description=__doc__, epilog=epilog)
 
 OPTINT = dict(type=int, default=None)
-parser.add_argument('--zoom', '-z', type=int, default=0, help='zoom factor (doubles per unit)')
+parser.add_argument('--zoom', '-z', type=int, default=0,
+                    help='zoom factor (doubles per unit)')
 parser.add_argument('-x', **OPTINT, help='x of top-left tile')
 parser.add_argument('-y', **OPTINT, help='y of top-left tile')
 parser.add_argument('--x1', **OPTINT, help='x of bottom-right tile')
@@ -167,9 +180,11 @@ parser.add_argument('--out', '-o', default=None,
 parser.add_argument('--project', '-p', choices=PROJECTIONS.keys(),
                     help='Project to a certain map projection. Works only if viewing whole Earth.')
 
+
 def exit(code, message):
     print(message, sys.stdout)
     exit(code)
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -179,7 +194,7 @@ if __name__ == '__main__':
     if not (args.x and args.y):
         args.x0 = args.y0 = 0
         args.x1 = args.y1 = 1
-        
+
     elif args.x1 or args.y1:
         if not (args.x1 and args.y1):
             exit(2, "--x1 and --y1 must both be present")
@@ -193,7 +208,7 @@ if __name__ == '__main__':
         args.y0 = args.y - args.radius
         args.x1 = args.x + args.radius
         args.y1 = args.y + args.radius
-    
+
     if args.out is None:
         from sys import argv
         args.out = ' '.join(argv[1:]).replace('/', '_') + '.png'

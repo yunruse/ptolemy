@@ -1,5 +1,3 @@
-import math
-
 from PIL import Image, ImageDraw
 from math import sin, cos, pi, asin
 
