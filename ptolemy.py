@@ -135,7 +135,7 @@ def paint(args):
             sized_font = font_for_width(font, text, tile_size * 0.5)
             if i == 0:
                 text += f" @ {zoom}"
-            w, h = sized_font.getsize(text)
+            _, _, w, h = sized_font.getbbox(text, anchor='lt')
             draw.rectangle(
                 (x, y, x+w, y+h), fill='#ffffff')
 
