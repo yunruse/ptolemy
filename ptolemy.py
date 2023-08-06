@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image, ImageDraw
 import requests
-from alive_progress import alive_bar
+from alive_progress import alive_bar, alive_it
 
 from coords import add_coordinate_options, process_coordinate_niceties
 from helpers import font_for_width, get_font
@@ -111,7 +111,7 @@ def paint(args):
         style.user_agent = args.user_agent
 
         tiles = style.get_tiles(bounds, zoom)
-        for c, tile in tiles.items():
+        for c, tile in alive_it(tiles.items(), title=f'Painting {style.kind}...'):
             if tile.path is None:
                 # TODO: fill with default sea color
                 continue
@@ -125,7 +125,9 @@ def paint(args):
         font = get_font()
 
         # tile coords
-        for i, c in enumerate(tiles.keys()):
+
+        coords = enumerate(tiles.keys())
+        for i, c in alive_it(coords, title='Adding indicators...'):
             x, y = tile_size * (c - bounds[0])
             draw.rectangle(
                 (x, y, x+tile_size, y+tile_size),
@@ -145,6 +147,7 @@ def paint(args):
     if f := PROJECTIONS.get(args.project):
         print(f'Projecting to {args.project}...')
         img = project(img, f)
+    print(f'Saving to: {args.out}')
     img.save(args.out)
 
 
