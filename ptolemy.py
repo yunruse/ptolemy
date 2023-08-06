@@ -27,9 +27,8 @@ except:
     PROJECTIONS = {}
     project = None
 
-XDG_DATA_HOME = os.environ.get('XDG_DATA_HOME', '~/.local/share')
-STORAGE = Path(XDG_DATA_HOME) / "ptolemy/{kind}/{z}/{x}/{y}.jpg"
-STORAGE = str(STORAGE.expanduser())
+CACHE = os.path.expanduser(os.environ.get('XDG_CACHE_HOME', '~/.cache'))
+STORAGE = CACHE + "/ptolemy/{kind}/{z}/{x}/{y}.jpg"
 
 @dataclass(slots=True)
 class Tile:
@@ -180,6 +179,8 @@ add_coordinate_options(parser)
 if __name__ == '__main__':
     args = parser.parse_args()
     process_coordinate_niceties(args)
+
+    Path('./output').mkdir(exist_ok=True)
 
     if args.out is None:
         from sys import argv

@@ -8,6 +8,8 @@ Requires Python 3 (3.9, I think?) and `pip install requests alive-progress`.
 
 Currently, `ptolemy` has a small subset of named tile servers. They are all ran generously pro bono; please do not abuse them. If you want to look out for other styles, consider OpenStreetMap's excellent list of [raster tile providers](https://wiki.openstreetmap.org/wiki/Raster_tile_providers).
 
+Tiles are cached to [`$XDG_CACHE_HOME/ptolemy`](https://xdgbasedirectoryspecification.com) (default: `~/.cache/ptolemy`).
+
 ## Todo
 
 [ ] Accept a "sea colour" as a background for tile-fetching errors
