@@ -11,6 +11,7 @@ import csv
 import os
 from itertools import product
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -26,6 +27,9 @@ except:
     PROJECTIONS = {}
     project = None
 
+XDG_DATA_HOME = os.environ.get('XDG_DATA_HOME', '~/.local/share')
+STORAGE = Path(XDG_DATA_HOME) / "ptolemy/{kind}/{z}/{x}/{y}.jpg"
+STORAGE = str(STORAGE.expanduser())
 
 @dataclass(slots=True)
 class Tile:
@@ -84,8 +88,6 @@ with open('tilemaps.csv') as f:
         assert len(line) == 4, "is there a missed comma in tilemaps.csv?"
         kind, name, url, size = line
         STYLES[kind] = Tilemap(kind, name, url, int(size))
-
-STORAGE = "tiles/{kind}/{z}/{x}/{y}.jpg"
 
 def paint(args):
     '''
