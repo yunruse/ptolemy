@@ -10,13 +10,13 @@ import argparse
 import csv
 import os
 from itertools import product
-import urllib.request
 from dataclasses import dataclass
 
 import numpy as np
 from PIL import Image, ImageDraw
-from coords import add_coordinate_options, process_coordinate_niceties
+import requests
 
+from coords import add_coordinate_options, process_coordinate_niceties
 from helpers import font_for_width, get_font
 
 try:
@@ -37,7 +37,7 @@ class Tilemap:
         self.user_agent = None
         # TODO: API keys?
 
-    def grab_file(self, to_fmt, redownload=False, **fmt):
+    def grab_file(self, to_fmt: str, redownload=False, **fmt):
         out = to_fmt.format(**fmt)
         if redownload or not os.path.isfile(out):
             folder, _ = os.path.split(out)
@@ -49,14 +49,13 @@ class Tilemap:
             if self.user_agent:
                 headers['User-Agent'] = self.user_agent
             try:
-                request = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(request) as fin:
-                    with open(out, 'wb') as fout:
-                        fout.write(fin.read())
-            except urllib.error.HTTPError as e:
+                r = requests.get(url, headers=headers)
+                with open(out, 'wb') as fout:
+                    fout.write(r.content)
+            except requests.exceptions.HTTPError as e:
                 print(url)
                 print(e)
-                return 'empty'
+                return None
         return out
 
     def get_tiles(self, bounds, zoom, callback=lambda x: None):
@@ -115,7 +114,7 @@ def paint(args):
         tiles = style.get_tiles(
             bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
         for c, path in tiles.items():
-            if path == 'empty':
+            if path is None:
                 # TODO: fill with default sea color
                 continue
             tile = Image.open(path).convert('RGBA')
