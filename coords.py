@@ -1,5 +1,8 @@
-import argparse
+'''
+Parse coordinate arguments on the command-line.
+'''
 
+import argparse
 
 def ints(string: str):
     return map(int, string.split(','))
@@ -68,7 +71,6 @@ def process_coordinate_niceties(A: argparse.Namespace):
         XV = list(XV)
 
         # cute parsing trick for eg `-x 7,4` `-x7 -y4`
-        print(xk, yk, XV)
         L = len(XV)
         if L > 2:
             exit(2, f'Only 1 or 2 values to -{xk} allowed!')

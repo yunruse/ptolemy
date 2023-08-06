@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image, ImageDraw
 import requests
+from alive_progress import alive_bar
 
 from coords import add_coordinate_options, process_coordinate_niceties
 from helpers import font_for_width, get_font
@@ -26,20 +27,24 @@ except:
     project = None
 
 
-@dataclass
+@dataclass(slots=True)
+class Tile:
+    path: str
+    was_downloaded: bool
+
+@dataclass(slots=True)
 class Tilemap:
     kind: str
     name: str
     url: str
     tile_size: int
-
-    def __post_init__(self):
-        self.user_agent = None
-        # TODO: API keys?
+    user_agent: str | None = None
 
     def grab_file(self, to_fmt: str, redownload=False, **fmt):
         out = to_fmt.format(**fmt)
-        if redownload or not os.path.isfile(out):
+
+        download = redownload or not os.path.isfile(out)
+        if download:
             folder, _ = os.path.split(out)
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -55,18 +60,19 @@ class Tilemap:
             except requests.exceptions.HTTPError as e:
                 print(url)
                 print(e)
-                return None
-        return out
+                return Tile(None, False)
+        return Tile(out, download)
 
-    def get_tiles(self, bounds, zoom, callback=lambda x: None):
+    def get_tiles(self, bounds, zoom):
         (x0, y0), (x1, y1) = bounds
-        coords = product(range(x0, x1), range(y0, y1))
-        tiles = {}
-        for i, c in enumerate(coords):
-            tiles[c] = self.grab_file(
-                STORAGE,
-                x=c[0], y=c[1], z=zoom, kind=self.kind)
-            callback(i)
+
+        tiles: dict[tuple[int, int], Tile] = {}
+        with alive_bar(total=int((y1-y0) * (x1-x0)), title=f'Fetching {self.kind}...') as bar:
+            for x, y in product(range(x0, x1), range(y0, y1)):
+                tile = self.grab_file(STORAGE, x=x, y=y, z=zoom, kind=self.kind)
+                tiles[x, y] = tile
+                bar(skipped=not tile.was_downloaded)
+            
         return tiles
 
 
@@ -88,7 +94,6 @@ def paint(args):
     styles = [STYLES[s] for s in args.styles]
 
     bounds = np.array(args.bound, dtype=int).reshape((2, 2))
-    print(bounds)
     if args.scale < 0:
         bounds //= int(2 ** -args.scale)
     else:
@@ -99,25 +104,18 @@ def paint(args):
     zoom = args.zoom + args.scale
     tile_size = styles[0].tile_size
 
-    print(f'drawing {N} tiles')
-    print(f'zoom:     {zoom}')
-    print(f'top left: {bounds[0]}')
-    print(f'size:     {size}')
-
     img = Image.new('RGBA', tuple(size * tile_size))
     draw = ImageDraw.Draw(img)
 
     for style in styles:
-        print(f'fetching {style.kind}')
         style.user_agent = args.user_agent
 
-        tiles = style.get_tiles(
-            bounds, zoom, lambda i: print(f'{i/N*100:>6.2f}%'))
-        for c, path in tiles.items():
-            if path is None:
+        tiles = style.get_tiles(bounds, zoom)
+        for c, tile in tiles.items():
+            if tile.path is None:
                 # TODO: fill with default sea color
                 continue
-            tile = Image.open(path).convert('RGBA')
+            tile = Image.open(tile.path).convert('RGBA')
             if style.tile_size != tile_size:
                 tile = tile.resize((tile_size, tile_size))
             x, y = tile_size * (c - bounds[0])
