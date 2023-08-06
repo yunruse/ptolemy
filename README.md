@@ -10,6 +10,7 @@ Currently, `ptolemy` has a small subset of named tile servers. They are all ran 
 
 ## Todo
 
+[ ] Accept a "sea colour" as a background for tile-fetching errors
 [ ] Interpret directly from URL, in addition to `tilemaps.csv`
 [ ] Interpret long/lat input
 [ ] OpenStreetMap URL extractor for `[...] z/lat/LONG [...]`

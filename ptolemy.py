@@ -55,12 +55,12 @@ class Tilemap:
                 headers['User-Agent'] = self.user_agent
             try:
                 r = requests.get(url, headers=headers)
+                r.raise_for_status()
                 with open(out, 'wb') as fout:
                     fout.write(r.content)
             except requests.exceptions.HTTPError as e:
-                print(url)
                 print(e)
-                return Tile(None, False)
+                exit(10)
         return Tile(out, download)
 
     def get_tiles(self, bounds, zoom):
