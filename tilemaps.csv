@@ -7,3 +7,7 @@ terrain,Stamen 'Open Terrain' Terrain,http://tile.stamen.com/{kind}/{z}/{x}/{y}@
 openstreetmap,OpenStreetMap,https://c.tile.openstreetmap.org/{z}/{x}/{y}.png,256
 opencyclemap,OpenCycleMap,http://tile.thunderforest.com/cycle/{z}/{x}/{y}.png,256
 cawn,Consortium of Ancient World Mappers,http://cawm.lib.uiowa.edu/tiles/{z}/{x}/{y}.png,256
+botw,Zelda: Breath of the Wild,http://zeldadungeon.net/maps/botw/tiles/{z}/{x}_{y}.jpg,750
+totk-depths,Zelda: Tears of the Kingdom depths,http://www.zeldadungeon.net/maps/totk/tiles/deptjs/{z}/{x}_{y}.jpg,564
+totk,Zelda: Tears of the Kingdom surface,http://www.zeldadungeon.net/maps/totk/tiles/surface/{z}/{x}_{y}.jpg,564
+totk-sky,Zelda: Tears of the Kingdom sky,http://www.zeldadungeon.net/maps/totk/tiles/sky/{z}/{x}_{y}.jpg,564
