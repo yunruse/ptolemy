@@ -13,7 +13,6 @@ from itertools import product
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 from PIL import Image, ImageDraw
 import requests
 from alive_progress import alive_bar, alive_it
@@ -94,13 +93,11 @@ def paint(args):
     '''
     styles = [STYLES[s] for s in args.styles]
 
-    bounds = np.array(args.bound, dtype=int).reshape((2, 2))
     if args.scale < 0:
-        bounds //= int(2 ** -args.scale)
+        args.bound //= int(2 ** -args.scale)
     else:
-        bounds *= int(2 ** args.scale)
-    size = (bounds[1]-bounds[0])
-    N = size[0] * size[1]
+        args.bound *= int(2 ** args.scale)
+    size = (args.bound[1]-args.bound[0])
 
     zoom = args.zoom + args.scale
     tile_size = styles[0].tile_size
@@ -111,7 +108,7 @@ def paint(args):
     for style in styles:
         style.user_agent = args.user_agent
 
-        tiles = style.get_tiles(bounds, zoom)
+        tiles = style.get_tiles(args.bound, zoom)
         for c, tile in alive_it(tiles.items(), title=f'Painting {style.kind}...'):
             if tile.path is None:
                 # TODO: fill with default sea color
@@ -119,7 +116,7 @@ def paint(args):
             tile = Image.open(tile.path).convert('RGBA')
             if style.tile_size != tile_size:
                 tile = tile.resize((tile_size, tile_size))
-            x, y = tile_size * (c - bounds[0])
+            x, y = tile_size * (c - args.bound[0])
             img.alpha_composite(tile, (x, y))
 
     if args.indicators:
@@ -129,7 +126,7 @@ def paint(args):
 
         coords = enumerate(tiles.keys())
         for i, c in alive_it(coords, title='Adding indicators...'):
-            x, y = tile_size * (c - bounds[0])
+            x, y = tile_size * (c - args.bound[0])
             draw.rectangle(
                 (x, y, x+tile_size, y+tile_size),
                 fill=None, outline='red', width=1)

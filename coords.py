@@ -4,6 +4,8 @@ Parse coordinate arguments on the command-line.
 
 import argparse
 
+import numpy as np
+
 def ints(string: str):
     return map(int, string.split(','))
 
@@ -31,43 +33,24 @@ def add_coordinate_options(parser: argparse.ArgumentParser):
                         ' as its width.')
     return coords
 
-def process_coordinate_niceties(A: argparse.Namespace):
-    "parse and produce bounding box for tilemap"
-    # Warning! Here lies a tiny sliver of wondrous madness
-    # as does all mathematics I suppose.
-    # I just wish Namespace allowed for subscripting...
-
-    # I love a good DSL!
-
-    def g(k):
-        "Get"
-        return getattr(A, k)
-    def s(k, v):
-        "Set"
-        setattr(A, k, v)
-
-    def d(v, d):
-        "Default for keys"
-        return d if v is None else v
-    
-    def e(k):
-        "Exists"
-        return g(k) is not None
-
-    def es(*ks):
-        "Exists (plural)"
-        return map(e, ks)
-
+def process_coordinate_niceties(args: argparse.Namespace):
+    "Parse and produce bounding box for tilemap"
+    def get(k):
+        return getattr(args, k)
+    def set(k, v):
+        setattr(args, k, v)
+    def exists(k):
+        return get(k) is not None
 
     def pair(xk, yk, yk_defaults_to_xk=False):
         "parse pairs of coordinate-like arguments"
-        if not e(xk):
+        if not exists(xk):
             # clearly this mode isn't in use
-            if e(yk):
+            if exists(yk):
                 raise TypeError(f'Cannot define -{yk} but not -{xk}')
             return
         
-        XV = g(xk)
+        XV = get(xk)
         XV = list(XV)
 
         # cute parsing trick for eg `-x 7,4` `-x7 -y4`
@@ -75,42 +58,45 @@ def process_coordinate_niceties(A: argparse.Namespace):
         if L > 2:
             exit(2, f'Only 1 or 2 values to -{xk} allowed!')
         
-        s(xk, XV[0])
+        set(xk, XV[0])
         if L == 2:
             # -x7,4
-            s(yk, XV[1])
+            set(yk, XV[1])
         elif yk_defaults_to_xk:
             # -W3 (square)
-            s(yk, XV[0])
+            set(yk, XV[0])
         else:
+            # -x "52.118N 2.325W"
+
             # -x7 -y4
-            if not e(yk):
+            if not exists(yk):
                 raise TypeError(f'Cannot define -{xk} but not -{yk}')
             # yk is already set
 
     # x,y parsing
-    A.x = d(A.x, [0])
-    A.y = d(A.y, 0)
-
-    # PIN      = any(es('x', 'y'))
-    ABSOLUTE = any(es('X', 'Y'))
-    RELATIVE = any(es('W', 'H'))
-    RADIUS   =      e('R')
+    args.x = args.x or [0]
+    args.y = args.y or 0
     pair('x', 'y')
 
-    M = ABSOLUTE + RELATIVE + RADIUS  # N_modes
-    if M == 0:
+    # PIN      = any(es('x', 'y'))
+    ABSOLUTE = exists('X') or exists('Y')
+    RELATIVE = exists('W') or exists('H')
+    RADIUS   = exists('R')
+
+    N_MODES_USED = ABSOLUTE + RELATIVE + RADIUS
+    if N_MODES_USED == 0:
         RELATIVE = True
-        A.W = [1]
-        A.H = 1
-    elif M > 1:
+        args.W = [1]
+        args.H = 1
+    elif N_MODES_USED > 1:
         exit(2, "Only one 'width mode' (X,Y / W,H / R) can be selected!")
 
     # only 1 mode, then!
 
     def setbound(src):
         # safe eval - no user input
-        A.bound = eval(src, None, A.__dict__)
+        bound = eval(src, None, args.__dict__)
+        args.bound = np.array(bound, dtype=int).reshape((2, 2))
 
     if ABSOLUTE:
         pair('X', 'Y')
