@@ -14,6 +14,8 @@ def font_for_width(font: ImageFont.FreeTypeFont, text: str, width: int):
     pixel_w, pixel_h = font.getsize(text)
     return font.font_variant(size=int(font.size * (width / pixel_w)))
 
-def exit(code, message):
-    print(message, sys.stdout)
-    exit(code)
+_exit = exit
+def exit(code: int, message: str | None = None):
+    if message is not None:
+        print(message, file=sys.stdout)
+    _exit(code)
