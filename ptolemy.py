@@ -156,19 +156,18 @@ parser = argparse.ArgumentParser(description=__doc__)
 
 parser.add_argument('--zoom', '-z', type=int, default=0,
                     help='zoom factor (doubles per unit)')
-parser.add_argument('styles', type=str, nargs='+', choices=STYLES.keys(),
-                    help='Map tile source to use, as defined in styles.txt.',)
+parser.add_argument('styles', type=str, nargs='+', choices=STYLES.keys(), metavar='STYLE',
+                    help='Map tile source(s) to use, as defined in tilemaps.csv.'
+                    ' Choices are: %(choices)s')
 parser.add_argument('--indicators', '-i', action='store_true',
-                    help='Draw helpful coordinate indicators.'
-                    'Useful for finding exactly what size you want.')
+                    help='Draw helpful coordinate indicators.')
 parser.add_argument('--scale', '-s', metavar='dz', type=int, default=0,
                     help='Zoom factor to scale in by. ')
 parser.add_argument('--user-agent', '-u', type=str, default=None,
-                    help='HTTP user agent. Provide `_` in place of `/`.')
+                    help='HTTP user agent for fetching.')
 parser.add_argument('--out', '-o', default=None,
                     help='File to output result to.'
-                    ' Defaults to the arguments provided in the current folder,'
-                    ' for easy comparison of different options.')
+                    ' Defaults to output/<args>.png.')
 parser.add_argument('--project', '-p', choices=PROJECTIONS.keys(),
                     help='Project to a certain map projection. Works only if viewing whole Earth.')
 add_coordinate_options(parser)
@@ -183,6 +182,4 @@ if __name__ == '__main__':
         from sys import argv
         # TODO: use paths. make sure `/output/` exists. fix relative paths. etc
         args.out = 'output/' + ' '.join(argv[1:]).replace('/', '_') + '.png'
-    if args.user_agent is not None:
-        args.user_agent = args.user_agent.replace('_', '/')
     paint(args)

@@ -22,8 +22,8 @@ def add_coordinate_options(parser: argparse.ArgumentParser):
     For convenience you can do `-x1,2` for `-x1 -y2` and likewise for `-W` and `-X`.
     ''')
 
-    coords.add_argument(            '-x',           **OPTINT2, help='x of top-left tile')
-    coords.add_argument(            '-y',           **OPTINT,  help='y of top-left tile')
+    coords.add_argument('--x0',     '-x', dest='x', **OPTINT2, help='x of top-left tile')
+    coords.add_argument('--y0',     '-y', dest='y', **OPTINT,  help='y of top-left tile')
     coords.add_argument('--x1',     '-X', dest='X', **OPTINT2, help='x of bottom-right tile')
     coords.add_argument('--y1',     '-Y', dest='Y', **OPTINT,  help='y of bottom-right tile')
     coords.add_argument('--width',  '-W', dest='W', **OPTINT2, help='width of image')
