@@ -9,6 +9,7 @@ from math import log, tan, pi
 from helpers import exit
 
 import numpy as np
+from geopy.geocoders import Nominatim
 
 COORD = r'''
 ([-+]?)  # sign
@@ -128,7 +129,14 @@ def process_coordinate_niceties(args: argparse.Namespace):
         try:
             XV = [int(x) for x in XV.split(',')]
         except ValueError:
-            exit(2, f'Error in parsing: {XV!r} is not an integer')
+            if not is_coordinate:
+                exit(2, f'Error in parsing: {XV!r} is not an integer')
+            # address-based coordinate
+            loc = Nominatim(user_agent="ptolemy").geocode(XV)
+            x, y = longlat_to_mercator(loc.longitude, loc.latitude)
+            set(xk, x * 2**args.zoom)
+            set(yk, y * 2**args.zoom)
+            return
 
         # cute parsing trick for eg `-x 7,4` `-x7 -y4`
         L = len(XV)
