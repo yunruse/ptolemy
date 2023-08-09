@@ -14,7 +14,7 @@ Tiles are cached to [`$XDG_CACHE_HOME/ptolemy`](https://xdgbasedirectoryspecific
 
 - [ ] Accept a "sea colour" as a background for tile-fetching errors
 - [ ] Interpret directly from URL, in addition to `tilemaps.csv`
-- [ ] Interpret long/lat input
+- [x] Interpret long/lat input
 - [ ] OpenStreetMap URL extractor for `[...] z/lat/LONG [...]`
 - [ ] Handle map projections with e.g. [geopandas](https://geopandas.org/en/stable/docs/user_guide/projections.html)
 - [ ] Simple cache manager - `touch` a tile when fetched from cache, and have the option to cull long-unused tiles

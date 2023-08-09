@@ -12,6 +12,7 @@ import os
 from itertools import product
 from dataclasses import dataclass
 from pathlib import Path
+from math import floor, ceil
 
 from PIL import Image, ImageDraw
 import requests
@@ -65,8 +66,14 @@ class Tilemap:
                 exit(10)
         return Tile(out, download)
 
-    def get_tiles(self, bounds, zoom):
+    Bound = tuple[tuple[float, float], tuple[float, float]]
+
+    def get_tiles(self, bounds: Bound, zoom: int):
         (x0, y0), (x1, y1) = bounds
+        x0 = floor(x0)
+        y0 = floor(y0)
+        x1 = ceil(x1)
+        y1 = ceil(y1)
 
         tiles: dict[tuple[int, int], Tile] = {}
         with alive_bar(total=int((y1-y0) * (x1-x0)), title=f'Fetching {self.kind}...') as bar:

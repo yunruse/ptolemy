@@ -4,15 +4,11 @@ Parse coordinate arguments on the command-line.
 
 import argparse
 import re
-from math import ceil, floor, log, tan, pi
-from typing import Callable
+from math import log, tan, pi
 
 from helpers import exit
 
 import numpy as np
-
-OPTINT = dict(type=int, default=None)
-OPTINT2 = dict(default=None)
 
 COORD = r'''
 ([-+]?)  # sign
@@ -30,7 +26,6 @@ A = rf'^{COORD}{LETTER}[,\s]\s*{COORD}{LETTER}$'
 COORDINATES = re.compile(A, re.VERBOSE)
 
 def _process_coord(sign: str, degrees: str | None, minutes: str | None, seconds: str | None, decimal: str | None, letter: str):
-
     if decimal is not None:
         result = float(decimal)
     else:
@@ -40,10 +35,7 @@ def _process_coord(sign: str, degrees: str | None, minutes: str | None, seconds:
 
     if sign == '-' or (letter or '') in 'SW':
         result *= -1
-
     return result, letter
-
-
 
 def parse_longlat(match: re.Match[str]):
     """
@@ -87,14 +79,16 @@ def add_coordinate_options(parser: argparse.ArgumentParser):
     x and y must be provided. If no width options are provided a single tile is produced.
     For convenience you can do `-x1,2` for `-x1 -y2` and likewise for `-W` and `-X`.
     ''')
-
-    coords.add_argument('--x0',     '-x', dest='x', **OPTINT2, help='x of top-left tile')
-    coords.add_argument('--y0',     '-y', dest='y', **OPTINT,  help='y of top-left tile')
-    coords.add_argument('--x1',     '-X', dest='X', **OPTINT2, help='x of bottom-right tile')
-    coords.add_argument('--y1',     '-Y', dest='Y', **OPTINT,  help='y of bottom-right tile')
-    coords.add_argument('--width',  '-W', dest='W', **OPTINT2, help='width of image')
-    coords.add_argument('--height', '-H', dest='H', **OPTINT,  help='y of bottom-right tile')
-    coords.add_argument('--radius', '-r', dest='R', **OPTINT,
+    
+    # TODO: entirely refactor this such that
+    # coordinates from 0 to 2^zoom are abstracted away???
+    coords.add_argument('--x0',     '-x', dest='x', default=None,            help='x of top-left tile')
+    coords.add_argument('--y0',     '-y', dest='y', default=None, type=int,  help='y of top-left tile')
+    coords.add_argument('--x1',     '-X', dest='X', default=None,            help='x of bottom-right tile')
+    coords.add_argument('--y1',     '-Y', dest='Y', default=None, type=int,  help='y of bottom-right tile')
+    coords.add_argument('--width',  '-W', dest='W', default=None,            help='width of image')
+    coords.add_argument('--height', '-H', dest='H', default=None, type=int,  help='y of bottom-right tile')
+    coords.add_argument('--radius', '-r', dest='R', default=None, type=int,
                         help='Treat (x,y) as the centre of a square and use RADIUS'
                         ' as its width.')
     return coords
@@ -108,8 +102,12 @@ def process_coordinate_niceties(args: argparse.Namespace):
     def exists(k):
         return get(k) is not None
 
-    CoordFunc = Callable[[float | int], int] | None
-    def pair(xk: str, yk: str, yk_defaults_to_xk=False, coord_func: CoordFunc = None):
+    def pair(
+        xk: str,
+        yk: str,
+        yk_defaults_to_xk=False,
+        is_coordinate=False,
+    ):
         "parse pairs of coordinate-like arguments"
         if not exists(xk):
             # clearly this mode isn't in use
@@ -120,15 +118,11 @@ def process_coordinate_niceties(args: argparse.Namespace):
         XV = get(xk)
 
         match = COORDINATES.match(XV)
-        if coord_func is not None and match:
-            
-            # TODO: swap out coord_func for a nicer handler
-            # that works better with --radius?
-
-            # 38.904 N, 77.016 E
+        if is_coordinate and match:
+            # -x '38.904 N, 77.016 E'
             x, y = longlat_to_mercator(*parse_longlat(match))
-            set(xk, coord_func(x * 2**args.zoom))
-            set(yk, coord_func(y * 2**args.zoom))
+            set(xk, x * 2**args.zoom)
+            set(yk, y * 2**args.zoom)
             return
         
         try:
@@ -156,7 +150,7 @@ def process_coordinate_niceties(args: argparse.Namespace):
     # x,y parsing
     args.x = args.x or 0
     args.y = args.y or 0
-    pair('x', 'y', coord_func=floor)
+    pair('x', 'y', is_coordinate=True)
 
     # PIN      = any(es('x', 'y'))
     ABSOLUTE = exists('X') or exists('Y')
@@ -179,7 +173,7 @@ def process_coordinate_niceties(args: argparse.Namespace):
         args.bound = np.array(bound, dtype=int).reshape((2, 2))
 
     if ABSOLUTE:
-        pair('X', 'Y', coord_func=ceil)
+        pair('X', 'Y', is_coordinate=True)
         setbound('[x, y, X, Y]')
     elif RELATIVE:
         pair('W', 'H', yk_defaults_to_xk=True)
