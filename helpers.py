@@ -11,7 +11,7 @@ def get_font(*names, size=20):
 
 def font_for_width(font: ImageFont.FreeTypeFont, text: str, width: int):
     "Get a font, its size such that text will have a given width"
-    pixel_w, pixel_h = font.getsize(text)
+    _, _, pixel_w, pixel_h = font.getbbox(text)
     return font.font_variant(size=int(font.size * (width / pixel_w)))
 
 _exit = exit

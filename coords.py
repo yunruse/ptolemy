@@ -9,7 +9,10 @@ from math import log, tan, pi
 from helpers import exit
 
 import numpy as np
-from geopy.geocoders import Nominatim
+try:
+    from geopy.geocoders import Nominatim
+except ImportError:
+    Nominatim = None
 
 COORD = r'''
 ([-+]?)  # sign
@@ -116,7 +119,7 @@ def process_coordinate_niceties(args: argparse.Namespace):
                 raise TypeError(f'Cannot define -{yk} but not -{xk}')
             return
         
-        XV = get(xk)
+        XV = str(get(xk))
 
         match = COORDINATES.match(XV)
         if is_coordinate and match:
@@ -129,7 +132,7 @@ def process_coordinate_niceties(args: argparse.Namespace):
         try:
             XV = [int(x) for x in XV.split(',')]
         except ValueError:
-            if not is_coordinate:
+            if not is_coordinate or Nominatim is None:
                 exit(2, f'Error in parsing: {XV!r} is not an integer')
             # address-based coordinate
             loc = Nominatim(user_agent="ptolemy").geocode(XV)
